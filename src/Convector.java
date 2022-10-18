@@ -1,8 +1,3 @@
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -10,75 +5,81 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
 
-/**
- *
- * @author Guest Mode
- */
+
+
 public class Main {
 
     private static final Stack<String> stack = new Stack<String>();
-    private static final Map<Integer, ArrayList<String>> operators = new HashMap<Integer, ArrayList<String>>();
+    private static final Map<Integer, ArrayList<String>> TABLE_OPERATORS = new HashMap<Integer, ArrayList<String>>();
     private static final Stack<Integer> priors = new Stack<Integer>();
     private static final ArrayList<String> VCI = new ArrayList<String>();
-    private static boolean check, op, restatuto, untiltrue = false;
+    private static boolean foundOperator, op, restatuto, untiltrue = false;
     private static final Stack<String> estatuto = new Stack<String>();
     private static final Stack<Integer> direccion = new Stack<Integer>();
-    private static final List<String> estatutos = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
+    private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
 
     public static void main(String args[]) throws IOException {
 
-        FileReader fr = null;
-        File tf = new File("Lectura.txt");
-        fr = new FileReader(tf);
-        Lectura(fr);
+        File file = new File("Lectura.txt");
+        if (file.exists()){
+            FileReader lector = new FileReader(file);
+            convector(lector);
+        }else{
+            System.err.println("El fichero no existe o no se encontro.");
+        }
 
     }
 
-    private static void Lectura(FileReader fr) throws IOException {
+    private static void convector(FileReader reader) throws IOException {
 
-        ArrayList<String> cadena = new ArrayList<>();
-        String add = "";
-        int i = fr.read();
-        OperatorsIntialize();
+        ArrayList<String> tokens = new ArrayList<>(); //tokens
+        String buffertoken = ""; //tokenbuffer
+        int i = reader.read();
+        createTableOperators();
         try {
             do {
-                if (add.equals("begin")) {
-                    add = "";
+                if (buffertoken.equals("begin")) {
+                    buffertoken = "";
                     //Si "i" no es un espacio blanco
                 } else if (!(String.valueOf((char) i).isBlank())) {
-                    add = add + String.valueOf((char) i);
-                    //Si "i" es un espacio en blanco o el string "add" tiene algo
-                } else if (String.valueOf((char) i).isBlank() && !add.isBlank()) {
+                    buffertoken = buffertoken + String.valueOf((char) i);
+                    //Si "i" es un espacio en blanco o el string "buffertoken" tiene algo
+                } else if (String.valueOf((char) i).isBlank() && !buffertoken.isBlank()) {
 
-                    //Agrega el string "add" al arreglo "cadena"
-                    cadena.add(add);
-                    add = "";
+                    //Agrega el string "buffertoken" al arreglo "cadena"
+                    tokens.add(buffertoken);
+                    buffertoken = "";
                 }
 
                 // Si "i" es igual a un "!"
                 if (String.valueOf((char) i).equals("!")) {
-                    add = "";
+                    buffertoken = "";
                     // Cadena de prueba Z = 4 * ( a * b ) * ( 100 / 15 - b ) ;
-                    System.out.println("Cadena de entrada" + " : " + cadena);
+                    System.out.println("Cadena de entrada" + " : " + tokens);
                     System.out.println();
-                    System.out.println("V C I---> " + readerchain(cadena));
+                    System.out.println("V C I---> " + vci(tokens));
                     System.out.println("------------------");
                     System.out.println();
-                    cadena.clear();
+                    tokens.clear();
                     VCI.clear(); // <--- LIMPIA VCI
 
                 }
 
-            } while ((i = fr.read()) != -1);// Hasta que no tenga nada que leer
+            } while ((i = reader.read()) != -1);// Hasta que no tenga nada que leer
 
-            if (!add.isEmpty()) { //Si sobre algo en el "add" guardarlo en el arreglo de "cadena"
-                cadena.add(add);
+            if (!buffertoken.isEmpty()) { //Si sobre algo en el "buffertoken" guardarlo en el arreglo de "cadena"
+                tokens.add(buffertoken);
             }
 
-            System.out.println("Cadena de entrada" + " : " + cadena);
+            System.out.println("Cadena de entrada" + " : " + tokens);
             System.out.println();
-            System.out.println("V C I---> " + readerchain(cadena));
+            System.out.println("V C I---> " + vci(tokens));
             System.out.println("------------------");
             System.out.println();
 
@@ -86,7 +87,7 @@ public class Main {
             Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
-                fr.close();
+                reader.close();
             } catch (IOException ex) {
                 Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -95,43 +96,43 @@ public class Main {
     }
 
     //Coloca los operadores en una pila.
-    private static void OperatorsIntialize() {
+    private static void createTableOperators() {
 
-        operators.put(60, new ArrayList<>(Arrays.asList("*", "/")));
+        TABLE_OPERATORS.put(60, new ArrayList<>(Arrays.asList("*", "/")));
 
-        operators.put(50, new ArrayList<>(Arrays.asList("+", "-")));
+        TABLE_OPERATORS.put(50, new ArrayList<>(Arrays.asList("+", "-")));
 
-        operators.put(40, new ArrayList<>(Arrays.asList(">", "<", "==", ">=", "<=")));
+        TABLE_OPERATORS.put(40, new ArrayList<>(Arrays.asList(">", "<", "==", ">=", "<=")));
 
-        operators.put(30, new ArrayList<>(Arrays.asList("not")));
+        TABLE_OPERATORS.put(30, new ArrayList<>(Arrays.asList("not")));
 
-        operators.put(20, new ArrayList<>(Arrays.asList("and")));
+        TABLE_OPERATORS.put(20, new ArrayList<>(Arrays.asList("and")));
 
-        operators.put(10, new ArrayList<>(Arrays.asList("or")));
+        TABLE_OPERATORS.put(10, new ArrayList<>(Arrays.asList("or")));
 
-        operators.put(0, new ArrayList<>(Arrays.asList("=", "(", ")", ";")));
+        TABLE_OPERATORS.put(0, new ArrayList<>(Arrays.asList("=", "(", ")", ";")));
 
     }
 
-    private static ArrayList<String> readerchain(ArrayList<String> cadena) {
-        for (String cadena1 : cadena) { // Obtener cada cadena del arreglo
+    private static ArrayList<String> vci(ArrayList<String> tokens) {
+        for (String token : tokens) { // Obtener cada token del arreglo
 
-            if (estatutos.contains(cadena1)) { // ¿Contiene una estructura de control?
-                handleEstatuto(cadena1);
+            if (LIST_STATUS.contains(token)) { // ¿El token es una estructura de control?
+                handleEstatuto(token);
             } else {
 
-                for (Map.Entry<Integer, ArrayList<String>> entry : operators.entrySet()) { //Obtiene los operadores en un Map
+                for (Map.Entry<Integer, ArrayList<String>> entry : TABLE_OPERATORS.entrySet()) { //Obtiene los operadores en un Map
 
-                    for (String test : entry.getValue()) { //Por cada operador
-                        if (test.equals(cadena1)) {//Si concide el operador
+                    for (String operator : entry.getValue()) { //Por cada operador
+                        if (operator.equals(token)) {//Si concide el operador
 
-                            handleStack(cadena1, entry.getKey());
+                            handleStack(token, entry.getKey());
                             break;// Ya no busca mas operadores
 
                         }
                     }
-                    if (check) {
-                        check = false;
+                    if (foundOperator) { // Si ya se manejo el operador ya no busca mas operadores
+                        foundOperator = false;
                         break;
                     }
                 }
@@ -139,7 +140,7 @@ public class Main {
             }
 
             if (!op && !restatuto) { // Si es un identificador o una constante
-                VCI.add(cadena1);
+                VCI.add(token);
 
             }
             op = false;
@@ -158,6 +159,8 @@ public class Main {
                 estatuto.push(cadena); //Agrega a la pila de estatuto
                 direccion.push(VCI.size()); //Agrega la ultima posicion del VCI "Direccion"
                 break;
+                // Archivo salida y que en el vci muestre la posicion
+                // El condicional if else leopoldo
             case "do":
                 String tfalso = "";
                 VCI.add(tfalso); //Genera el token falso
@@ -186,7 +189,7 @@ public class Main {
     }
 
     private static void handleStack(String cadena, Integer prior) {
-        check = true;
+        foundOperator = true;
         op = true;
         //Si la pila no esta vacia, la prioridad del operador es menor y no es opérador nulo
         if (!stack.empty() && prior <= priors.peek() &&  !Arrays.asList("(",")",";","=").contains(cadena)) {
