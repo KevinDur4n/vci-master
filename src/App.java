@@ -13,83 +13,70 @@ import java.util.ArrayList;
 
 
 
-public class Main {
-
-    private static final Stack<String> stack = new Stack<String>();
-    private static final Map<Integer, ArrayList<String>> TABLE_OPERATORS = new HashMap<Integer, ArrayList<String>>();
-    private static final Stack<Integer> priors = new Stack<Integer>();
-    private static final ArrayList<String> VCI = new ArrayList<String>();
+public class App { //Main
     private static boolean foundOperator, op, restatuto, untiltrue = false;
     private static final Stack<String> estatuto = new Stack<String>();
     private static final Stack<Integer> direccion = new Stack<Integer>();
     private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
+    private static final Stack<String> stack = new Stack<String>();
+    private static final Map<Integer, ArrayList<String>> TABLE_OPERATORS = new HashMap<Integer, ArrayList<String>>();
+    private static final Stack<Integer> priors = new Stack<Integer>();
+    private static final ArrayList<String> VCI = new ArrayList<String>();
+
 
     public static void main(String args[]) throws IOException {
 
         File file = new File("Lectura.txt");
         if (file.exists()){
             FileReader lector = new FileReader(file);
-            convector(lector);
+            readFile(lector);
         }else{
             System.err.println("El fichero no existe o no se encontro.");
         }
 
     }
 
-    private static void convector(FileReader reader) throws IOException {
+    private static void readFile(FileReader reader) throws IOException {
+        //Agrupar los metodos  en clases estaticas
+        //Devidir cada funcion en cosas especificas
 
-        ArrayList<String> tokens = new ArrayList<>(); //tokens
         String buffertoken = ""; //tokenbuffer
-        int i = reader.read();
+        int intChar = reader.read();
+        String character = "";
         createTableOperators();
+        System.out.println("Cadena de Entrada");
         try {
+
             do {
+                character = String.valueOf((char) intChar);
                 if (buffertoken.equals("begin")) {
                     buffertoken = "";
-                    //Si "i" no es un espacio blanco
-                } else if (!(String.valueOf((char) i).isBlank())) {
-                    buffertoken = buffertoken + String.valueOf((char) i);
-                    //Si "i" es un espacio en blanco o el string "buffertoken" tiene algo
-                } else if (String.valueOf((char) i).isBlank() && !buffertoken.isBlank()) {
+                    //Si "character" no es un espacio blanco
+                } else if (!(character.isBlank())) {
+                    buffertoken = buffertoken + character;
+                    //Si "character" es un espacio en blanco o el  "buffertoken" tiene algo
+                } else if (character.isBlank() && !buffertoken.isBlank()) {
 
-                    //Agrega el string "buffertoken" al arreglo "cadena"
-                    tokens.add(buffertoken);
+                    System.out.print(buffertoken + " ");
+                    convector(buffertoken);
                     buffertoken = "";
                 }
 
-                // Si "i" es igual a un "!"
-                if (String.valueOf((char) i).equals("!")) {
-                    buffertoken = "";
-                    // Cadena de prueba Z = 4 * ( a * b ) * ( 100 / 15 - b ) ;
-                    System.out.println("Cadena de entrada" + " : " + tokens);
-                    System.out.println();
-                    System.out.println("V C I---> " + vci(tokens));
-                    System.out.println("------------------");
-                    System.out.println();
-                    tokens.clear();
-                    VCI.clear(); // <--- LIMPIA VCI
+                intChar = reader.read();
+            } while (intChar != -1);// Hasta que no tenga nada que leer
 
-                }
-
-            } while ((i = reader.read()) != -1);// Hasta que no tenga nada que leer
-
-            if (!buffertoken.isEmpty()) { //Si sobre algo en el "buffertoken" guardarlo en el arreglo de "cadena"
-                tokens.add(buffertoken);
-            }
-
-            System.out.println("Cadena de entrada" + " : " + tokens);
             System.out.println();
-            System.out.println("V C I---> " + vci(tokens));
+            System.out.println("V C I---> " + VCI);
             System.out.println("------------------");
             System.out.println();
 
         } catch (FileNotFoundException ex) {
-            Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
             try {
                 reader.close();
             } catch (IOException ex) {
-                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+                Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
             }
 
         }
@@ -98,8 +85,8 @@ public class Main {
     //Coloca los operadores en una pila.
     private static void createTableOperators() {
 
-        TABLE_OPERATORS.put(60, new ArrayList<>(Arrays.asList("*", "/")));
 
+        TABLE_OPERATORS.put(60, new ArrayList<>(Arrays.asList("*", "/")));
         TABLE_OPERATORS.put(50, new ArrayList<>(Arrays.asList("+", "-")));
 
         TABLE_OPERATORS.put(40, new ArrayList<>(Arrays.asList(">", "<", "==", ">=", "<=")));
@@ -114,8 +101,8 @@ public class Main {
 
     }
 
-    private static ArrayList<String> vci(ArrayList<String> tokens) {
-        for (String token : tokens) { // Obtener cada token del arreglo
+
+    private static void convector(String token) {
 
             if (LIST_STATUS.contains(token)) { // ¿El token es una estructura de control?
                 handleEstatuto(token);
@@ -145,45 +132,22 @@ public class Main {
             }
             op = false;
             restatuto = false;
-        }
-        return VCI;
     }
 
     private static void handleEstatuto(String cadena) { //Maneja la estructura de control WHILE
 
         restatuto = true;
 
-        switch (cadena) {
-            case "while":
+        switch (cadena) { // hace lo del repeat
             case "repeat":
-                estatuto.push(cadena); //Agrega a la pila de estatuto
-                direccion.push(VCI.size()); //Agrega la ultima posicion del VCI "Direccion"
-                break;
-                // Archivo salida y que en el vci muestre la posicion
-                // El condicional if else leopoldo
-            case "do":
-                String tfalso = "";
-                VCI.add(tfalso); //Genera el token falso
-
-                direccion.push(VCI.size() - 1); //Coloca el comienzo de la primera instruccion
-                VCI.add("do");// Agrega el estatuto do
-
+                estatuto.push(cadena); //Entra "repeat" a la pila de estatutos
+                direccion.push(VCI.size()); //Entra la direccion corresponidete a la [ila de direcciones
                 break;
             case "until":
                 untiltrue = true;
                 break;
             case "end":
-                if (estatuto.peek().equals("while")) {//Si es un while el estatuto
-                    Integer directionpeek = direccion.peek(); //Obtienes la ultima direccion de la pila de direcciones
-                    VCI.add(direccion.pop(), String.valueOf(((VCI.size() - 1) + 3))); // Agregas la direccion mas dos
-
-                    VCI.add(String.valueOf(direccion.pop())); // Se agrega el valor de la direccion
-
-                    VCI.remove(directionpeek + 1); // Se quita el valor
-                    VCI.add("end-while");
-                }
-
-                estatuto.pop(); // Sacas el estatuto
+                estatuto.pop();
                 break;
         }
     }
