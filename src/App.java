@@ -12,14 +12,14 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 
-
 public class App { //Main
     private static boolean foundOperator, op, restatuto, untiltrue = false;
     private static final Stack<String> estatuto = new Stack<String>();
     private static final Stack<Integer> direccion = new Stack<Integer>();
     private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
     private static final Stack<String> stack = new Stack<String>();
-    private static final Map<Integer, ArrayList<String>> TABLE_OPERATORS = new HashMap<Integer, ArrayList<String>>();
+    private static final Map<String, Integer> MAP_OPERATORS = new HashMap<String, Integer>();
+
     private static final Stack<Integer> priors = new Stack<Integer>();
     private static final ArrayList<String> VCI = new ArrayList<String>();
 
@@ -27,10 +27,10 @@ public class App { //Main
     public static void main(String args[]) throws IOException {
 
         File file = new File("Lectura.txt");
-        if (file.exists()){
+        if (file.exists()) {
             FileReader lector = new FileReader(file);
             readFile(lector);
-        }else{
+        } else {
             System.err.println("El fichero no existe o no se encontro.");
         }
 
@@ -43,7 +43,7 @@ public class App { //Main
         String buffertoken = ""; //tokenbuffer
         int intChar = reader.read();
         String character = "";
-        createTableOperators();
+        createMapOperators();
         System.out.println("Cadena de Entrada");
         try {
 
@@ -83,61 +83,29 @@ public class App { //Main
     }
 
     //Coloca los operadores en una pila.
-    private static void createTableOperators() {
 
 
-        TABLE_OPERATORS.put(60, new ArrayList<>(Arrays.asList("*", "/")));
-        TABLE_OPERATORS.put(50, new ArrayList<>(Arrays.asList("+", "-")));
-
-        TABLE_OPERATORS.put(40, new ArrayList<>(Arrays.asList(">", "<", "==", ">=", "<=")));
-
-        TABLE_OPERATORS.put(30, new ArrayList<>(Arrays.asList("not")));
-
-        TABLE_OPERATORS.put(20, new ArrayList<>(Arrays.asList("and")));
-
-        TABLE_OPERATORS.put(10, new ArrayList<>(Arrays.asList("or")));
-
-        TABLE_OPERATORS.put(0, new ArrayList<>(Arrays.asList("=", "(", ")", ";")));
-
-    }
-
-
+    /**
+     * Analiza el token entregado, y elige que hacer con cada token.
+     * Si es una estatuto llama handleEstatuo o si es un operador llama handleStack.
+     * En el caso de que es un identifcador o variable guarda directamente el token en el VCI.
+     * @param token
+     */
     private static void convector(String token) {
 
-            if (LIST_STATUS.contains(token)) { // ¿El token es una estructura de control?
-                handleEstatuto(token);
-            } else {
-
-                for (Map.Entry<Integer, ArrayList<String>> entry : TABLE_OPERATORS.entrySet()) { //Obtiene los operadores en un Map
-
-                    for (String operator : entry.getValue()) { //Por cada operador
-                        if (operator.equals(token)) {//Si concide el operador
-
-                            handleStack(token, entry.getKey());
-                            break;// Ya no busca mas operadores
-
-                        }
-                    }
-                    if (foundOperator) { // Si ya se manejo el operador ya no busca mas operadores
-                        foundOperator = false;
-                        break;
-                    }
-                }
-
-            }
-
-            if (!op && !restatuto) { // Si es un identificador o una constante
-                VCI.add(token);
-
-            }
-            op = false;
-            restatuto = false;
+        if (LIST_STATUS.contains(token)) { // ¿El token es una estructura de control?
+            handleEstatuto(token);
+        } else if (MAP_OPERATORS.containsKey(token)) {
+            int priorOp = MAP_OPERATORS.get(token);
+            handleStack(token, priorOp);
+        } else {// Si es un identificador o una constante
+            VCI.add(token);
+        }
     }
 
+
+
     private static void handleEstatuto(String cadena) { //Maneja la estructura de control WHILE
-
-        restatuto = true;
-
         switch (cadena) { // hace lo del repeat
             case "repeat":
                 estatuto.push(cadena); //Entra "repeat" a la pila de estatutos
@@ -153,10 +121,8 @@ public class App { //Main
     }
 
     private static void handleStack(String cadena, Integer prior) {
-        foundOperator = true;
-        op = true;
         //Si la pila no esta vacia, la prioridad del operador es menor y no es opérador nulo
-        if (!stack.empty() && prior <= priors.peek() &&  !Arrays.asList("(",")",";","=").contains(cadena)) {
+        if (!stack.empty() && prior <= priors.peek() && !Arrays.asList("(", ")", ";", "=").contains(cadena)) {
 
             while (prior <= priors.peek()) { //Mientras la prioridad del operador entrante es menor
                 VCI.add(stack.pop()); //Se saca el operador de la pila
@@ -202,7 +168,33 @@ public class App { //Main
                     break;
             }
 
-}
+        }
 
-}
+    }
+
+    private static void createMapOperators() {
+
+        MAP_OPERATORS.put("*",60);
+        MAP_OPERATORS.put("/",60);
+        MAP_OPERATORS.put("+",50);
+        MAP_OPERATORS.put("-",50);
+
+        MAP_OPERATORS.put(">",40);
+        MAP_OPERATORS.put("<",40);
+        MAP_OPERATORS.put("==",40);
+        MAP_OPERATORS.put(">=",40);
+        MAP_OPERATORS.put("<=",40);
+
+        MAP_OPERATORS.put("not",30);
+
+        MAP_OPERATORS.put("and",20);
+
+        MAP_OPERATORS.put("or",10);
+
+
+        MAP_OPERATORS.put("=",0);
+        MAP_OPERATORS.put("(",0);
+        MAP_OPERATORS.put(")",0);
+        MAP_OPERATORS.put(";",0);
+    }
 }
