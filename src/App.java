@@ -13,18 +13,20 @@ import java.util.ArrayList;
 
 
 public class App { //Main
-    private static boolean foundOperator, op, restatuto, untiltrue = false;
+    private static boolean untiltrue = false;
+    private static  StringBuilder dataFile = new StringBuilder();
     private static final Stack<String> estatuto = new Stack<String>();
     private static final Stack<Integer> direccion = new Stack<Integer>();
-    private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
     private static final Stack<String> stack = new Stack<String>();
-    private static final Map<String, Integer> MAP_OPERATORS = new HashMap<String, Integer>();
-
     private static final Stack<Integer> priors = new Stack<Integer>();
+    private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
+    private static final Map<String, Integer> MAP_OPERATORS = new HashMap<String, Integer>();
     private static final ArrayList<String> VCI = new ArrayList<String>();
 
+    private    static       int index;
 
     public static void main(String args[]) throws IOException {
+        createMapOperators();
 
         File file = new File("Lectura.txt");
         if (file.exists()) {
@@ -33,6 +35,18 @@ public class App { //Main
         } else {
             System.err.println("El fichero no existe o no se encontro.");
         }
+        int minLen =  (VCI.size() + "").length();
+        VCI.forEach((token)->{
+            var len = Math.max(token.length(), minLen);
+            System.out.printf("|%-" + len +"s",token);
+        });
+        System.out.println();
+        index = 0;
+        VCI.forEach((token)->{
+            var len = Math.max(token.length(), minLen);
+            System.out.printf("|%-" + len +"s",index++);
+        });
+        System.out.println();
 
     }
 
@@ -40,35 +54,25 @@ public class App { //Main
         //Agrupar los metodos  en clases estaticas
         //Devidir cada funcion en cosas especificas
 
-        String buffertoken = ""; //tokenbuffer
+        String buffertoken = "", character; //tokenbuffer
         int intChar = reader.read();
-        String character = "";
-        createMapOperators();
-        System.out.println("Cadena de Entrada");
         try {
-
             do {
                 character = String.valueOf((char) intChar);
                 if (buffertoken.equals("begin")) {
+                    dataFile.append(buffertoken + " ");
                     buffertoken = "";
                     //Si "character" no es un espacio blanco
                 } else if (!(character.isBlank())) {
                     buffertoken = buffertoken + character;
                     //Si "character" es un espacio en blanco o el  "buffertoken" tiene algo
                 } else if (character.isBlank() && !buffertoken.isBlank()) {
-
-                    System.out.print(buffertoken + " ");
+                    dataFile.append(buffertoken + " ");
                     convector(buffertoken);
                     buffertoken = "";
                 }
-
                 intChar = reader.read();
             } while (intChar != -1);// Hasta que no tenga nada que leer
-
-            System.out.println();
-            System.out.println("V C I---> " + VCI);
-            System.out.println("------------------");
-            System.out.println();
 
         } catch (FileNotFoundException ex) {
             Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
@@ -82,7 +86,6 @@ public class App { //Main
         }
     }
 
-    //Coloca los operadores en una pila.
 
 
     /**
@@ -101,6 +104,7 @@ public class App { //Main
         } else {// Si es un identificador o una constante
             VCI.add(token);
         }
+
     }
 
 
