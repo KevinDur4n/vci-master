@@ -1,3 +1,4 @@
+import java.io.*;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -5,28 +6,25 @@ import java.util.Map;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 
 
 public class App { //Main
-    private static boolean untiltrue = false;
+    private static boolean untiltrue = false,readyVCI = false;
+    private static int dirIfEnd = 0;
     private static  StringBuilder dataFile = new StringBuilder();
     private static final Stack<String> estatuto = new Stack<String>();
     private static final Stack<Integer> direccion = new Stack<Integer>();
     private static final Stack<String> stack = new Stack<String>();
     private static final Stack<Integer> priors = new Stack<Integer>();
-    private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until"});
+    private static final List<String> LIST_STATUS = Arrays.asList(new String[]{"while", "do", "end", "repeat", "until","if","then","else"});
     private static final Map<String, Integer> MAP_OPERATORS = new HashMap<String, Integer>();
     private static final ArrayList<String> VCI = new ArrayList<String>();
 
-    private    static       int index;
+    private static int index;
 
     public static void main(String args[]) throws IOException {
-        createMapOperators();
+        createMapOperators(); //Inicializa el mapa de operadores
 
         File file = new File("Lectura.txt");
         if (file.exists()) {
@@ -35,24 +33,15 @@ public class App { //Main
         } else {
             System.err.println("El fichero no existe o no se encontro.");
         }
-        int minLen =  (VCI.size() + "").length();
-        VCI.forEach((token)->{
-            var len = Math.max(token.length(), minLen);
-            System.out.printf("|%-" + len +"s",token);
-        });
-        System.out.println();
-        index = 0;
-        VCI.forEach((token)->{
-            var len = Math.max(token.length(), minLen);
-            System.out.printf("|%-" + len +"s",index++);
-        });
-        System.out.println();
+        if(readyVCI){
+            File outFile = new File("outFile.txt");
+            writeFile(outFile,true);
+        }
+
 
     }
 
     private static void readFile(FileReader reader) throws IOException {
-        //Agrupar los metodos  en clases estaticas
-        //Devidir cada funcion en cosas especificas
 
         String buffertoken = "", character; //tokenbuffer
         int intChar = reader.read();
@@ -72,8 +61,8 @@ public class App { //Main
                     buffertoken = "";
                 }
                 intChar = reader.read();
-            } while (intChar != -1);// Hasta que no tenga nada que leer
-
+            } while (intChar != -1);
+            readyVCI = true;
         } catch (FileNotFoundException ex) {
             Logger.getLogger(App.class.getName()).log(Level.SEVERE, null, ex);
         } finally {
@@ -95,84 +84,169 @@ public class App { //Main
      * @param token
      */
     private static void convector(String token) {
-
-        if (LIST_STATUS.contains(token)) { // ¿El token es una estructura de control?
+        if (LIST_STATUS.contains(token)) {
             handleEstatuto(token);
         } else if (MAP_OPERATORS.containsKey(token)) {
             int priorOp = MAP_OPERATORS.get(token);
             handleStack(token, priorOp);
-        } else {// Si es un identificador o una constante
+        } else {
             VCI.add(token);
         }
-
     }
 
 
+    /**
+     * Maneja la estructura de control WHILE-DO, IF-THEN-ELSE, REPEAT-UNTIL
+     * @param token es el estatuto que se va manejar.
+     */
+    private static void handleEstatuto(String token) {
 
-    private static void handleEstatuto(String cadena) { //Maneja la estructura de control WHILE
-        switch (cadena) { // hace lo del repeat
-            case "repeat":
-                estatuto.push(cadena); //Entra "repeat" a la pila de estatutos
-                direccion.push(VCI.size()); //Entra la direccion corresponidete a la [ila de direcciones
+        switch (token) {
+            case "while" ,"repeat":
+                estatuto.push(token);
+                direccion.push(VCI.size());
+                break;
+            // Archivo salida y que en el vci muestre la posicion
+            // El condicional if else leopoldo
+            case "do":
+                String tfalso = "";
+                VCI.add(tfalso);
+                direccion.push(VCI.size() - 1); //Coloca el comienzo de la primera instruccion
+                VCI.add("do");
                 break;
             case "until":
                 untiltrue = true;
                 break;
             case "end":
+                if(estatuto.isEmpty()){
+                   break;
+                }
+                if (estatuto.peek().equals("while")) {
+                    Integer directionpeek = direccion.peek();
+                    VCI.add(direccion.pop(), String.valueOf(((VCI.size() - 1) + 3)));
+
+                    VCI.add(String.valueOf(direccion.pop()));
+
+                    VCI.remove(directionpeek + 1);
+                    VCI.add("end-while");
+                }
+
+                if(estatuto.peek().equals("if")){
+                    dirIfEnd = direccion.peek();
+                    popDireccionApuntador();
+                }
+                if (estatuto.peek().equals("else")){
+                    popDireccionApuntador();
+                }
                 estatuto.pop();
+
                 break;
-        }
-    }
+
+            case "if":
+                estatuto.push(token);
+                break;
+            case "then":
+                while (!stack.empty()){
+                    VCI.add(stack.pop());
+                    priors.pop();
+                }
+                direccion.push(VCI.size());
+                VCI.add(token);
+                break;
+
+            case "else":
+                estatuto.push(token);
+                popDireccionApuntador2(dirIfEnd);
+                direccion.push(VCI.size());
+                VCI.add(token);
+                break;
+
+
+
+}
+}
 
     private static void handleStack(String cadena, Integer prior) {
         //Si la pila no esta vacia, la prioridad del operador es menor y no es opérador nulo
         if (!stack.empty() && prior <= priors.peek() && !Arrays.asList("(", ")", ";", "=").contains(cadena)) {
+            //Mientras la prioridad del operador entrante es menor
+            while (prior <= priors.peek()) {
+                VCI.add(stack.pop());
 
-            while (prior <= priors.peek()) { //Mientras la prioridad del operador entrante es menor
-                VCI.add(stack.pop()); //Se saca el operador de la pila
-
-                priors.pop(); //Se saca la prioridad de ese operador
+                priors.pop();
             }
 
-            stack.push(cadena); //Se agrega el operador entrante a la pila
-            priors.push(prior); //Se agrega la prioridad a la pila
+            stack.push(cadena);
+            priors.push(prior);
 
         } else {
 
             switch (cadena) {
                 case ";":
-                    while (!stack.isEmpty()) {//Si la pila de operadores no esta vacia
 
-                        //Vaciamos los operadores
+                    while (!stack.isEmpty()) {
+
                         VCI.add(stack.pop());
                         priors.pop();
                     }
                     break;
                 case ")":
-
-                    while (!stack.peek().equals("(")) { //Hasta que se encuentre el parentesis "("
+                    //Hasta que se encuentre el parentesis "("
+                    while (!stack.peek().equals("(")) {
                         VCI.add(stack.pop());
                         priors.pop();
                     }
-                    // Saca el parentesis "("
                     stack.pop();
                     priors.pop();
 
-                    if (untiltrue) {// Si se encuentra un until
-                        VCI.add(String.valueOf(direccion.pop())); // Saca la direccion de la pila
+                    if (untiltrue) {
+                        VCI.add(String.valueOf(direccion.pop()));
                         VCI.add("until");
                         untiltrue = false;
                     }
 
                     break;
 
-                default: //Por naturaleza se agrega los operadores
+                default:
                     stack.push(cadena);
                     priors.push(prior);
                     break;
             }
 
         }
+
+    }
+
+    private static void writeFile(File file,Boolean printOut) throws IOException{
+        try{
+            FileWriter writer = new FileWriter(file);
+            int minLen =  (VCI.size() + "").length();
+            String out = "";
+            for(String token :  VCI){
+                var len = Math.max(token.length(), minLen);
+                out += String.format("|%-" + len +"s",token);
+            }
+            out += "\n";
+            index = 0;
+            for(String token :  VCI){
+                var len = Math.max(token.length(), minLen);
+                out += String.format("|%-" + len +"s",index++);
+            }
+            writer.write(out);
+            writer.close();
+            if(printOut){
+                System.out.println(out);
+            }
+        }catch (IOException e){
+            throw new IOException("Error en la escritura del archivo");
+        }
+
+    }
+    private static void popDireccionApuntador(){
+        VCI.add(direccion.pop(), String.valueOf(VCI.size()+1));
+    }
+    private static void popDireccionApuntador2(int direccion){
+        VCI.set(direccion,String.valueOf(VCI.size()+2));
 
     }
 
